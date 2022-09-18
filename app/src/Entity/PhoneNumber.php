@@ -2,50 +2,38 @@
 
 namespace App\Entity;
 
-use App\Repository\PhoneNumberRepository;
-use Doctrine\DBAL\Types\Types;
+use App\Repository\NumberRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: PhoneNumberRepository::class)]
+/**
+ * @ORM\Entity(repositoryClass=NumberRepository::class)
+ */
 class PhoneNumber
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    /**
+     * @ORM\Id
+     * @ORM\GeneratedValue
+     * @ORM\Column(type="integer")
+     */
+    private int $id;
 
-    #[ORM\Column]
-    private ?int $code = null;
-
-    #[ORM\Column(type: Types::BIGINT)]
-    private ?string $number = null;
+    /**
+     * @ORM\Column(type="bigint")
+     */
+    private int $number;
 
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getCode(): ?int
-    {
-        return $this->code;
-    }
-
-    public function setCode(int $code): self
-    {
-        $this->code = $code;
-
-        return $this;
-    }
-
-    public function getNumber(): ?string
+    public function getNumber(): int
     {
         return $this->number;
     }
 
-    public function setNumber(string $number): self
+    public function setNumber(int $number): void
     {
         $this->number = $number;
-
-        return $this;
     }
 }
