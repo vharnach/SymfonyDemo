@@ -1,5 +1,8 @@
 version: '3'
 
+networks:
+    symfony-network:
+
 services:
 
     # nginx
@@ -14,6 +17,8 @@ services:
         depends_on:
             - php74-service
             - mysql8-service
+        networks:
+            - symfony-network
 
     # php
     php74-service:
@@ -25,6 +30,8 @@ services:
             - "9000:9000"
         volumes:
             - ./app:/var/www/project
+        networks:
+            - symfony-network
 
     # mysql
     mysql8-service:
@@ -36,6 +43,8 @@ services:
             - ./mysql:/var/lib/mysql
         command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
         restart: always
+        networks:
+            - symfony-network
         environment:
             MYSQL_ROOT_PASSWORD: secret
             MYSQL_PASSWORD: secret
@@ -47,3 +56,5 @@ services:
         volumes:
             - ./app:/var/www/project
         working_dir: /var/www/project
+        networks:
+            - symfony-network

@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\PhoneNumber;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -11,10 +12,10 @@ use Symfony\Component\Routing\Annotation\Route;
 /**
  * @Route("/api", name="api_")
  */
-class PhoneNumberController extends AbstractController
+class ProjectController extends AbstractController
 {
     /**
-     * @Route("/phone-numbers", name="phone_number_index", methods={"GET"})
+     * @Route("/phone-number", name="project_index", methods={"GET"})
      */
     public function index(): Response
     {
@@ -23,13 +24,8 @@ class PhoneNumberController extends AbstractController
             ->findAll();
 
         $data = [];
-
         foreach ($phoneNumbers as $phoneNumber) {
-            $data[] = [
-                'id' => $phoneNumber->getId(),
-                'code' => $phoneNumber->getCode(),
-                'number' => $phoneNumber->getNumber(),
-            ];
+            $data[] = $this->getPhoneNumberView($phoneNumber);
         }
 
         return $this->json($data);
@@ -37,27 +33,24 @@ class PhoneNumberController extends AbstractController
 
 
     /**
-     * @Route("/phone-number", name="phone_number_new", methods={"POST"})
+     * @Route("/phone-number", name="project_new", methods={"POST"})
      */
     public function new(Request $request): Response
     {
         $entityManager = $this->getDoctrine()->getManager();
 
         $phoneNumber = new PhoneNumber();
-        $phoneNumber->setCode($request->request->get('code'));
-        $phoneNumber->setNumber($request->request->get('number'));
+        $phoneNumber->setNumber($request->request->get('phoneNumber'));
 
         $entityManager->persist($phoneNumber);
         $entityManager->flush();
 
-        return $this->json(
-            sprintf('New phone number added: +%d %d', $phoneNumber->getCode(), $phoneNumber->getNumber())
-        );
+        return $this->json('Created new phone number successfully with id ' . $phoneNumber->getId());
     }
 
 
     /**
-     * @Route("/phone-number/{id}", name="phone_number_show", methods={"GET"})
+     * @Route("/phone-number/{id}", name="project_show", methods={"GET"})
      */
     public function show(int $id): Response
     {
@@ -66,21 +59,15 @@ class PhoneNumberController extends AbstractController
             ->find($id);
 
         if (!$phoneNumber) {
-            return $this->json('No phone number found for id' . $id, 404);
+            return $this->sendNoPhoneNumberFound($id);
         }
 
-        $data = [
-            'id' => $phoneNumber->getId(),
-            'code' => $phoneNumber->getCode(),
-            'number' => $phoneNumber->getNumber(),
-        ];
-
-        return $this->json($data);
+        return $this->json($this->getPhoneNumberView($phoneNumber));
     }
 
 
     /**
-     * @Route("/phone-number/{id}", name="phone_number_edit", methods={"PUT", "PATCH"})
+     * @Route("/phone-number/{id}", name="project_edit", methods={"PUT", "PATCH"})
      */
     public function edit(Request $request, int $id): Response
     {
@@ -88,27 +75,20 @@ class PhoneNumberController extends AbstractController
         $phoneNumber = $entityManager->getRepository(PhoneNumber::class)->find($id);
 
         if (!$phoneNumber) {
-            return $this->json('No phone number found for id' . $id, 404);
+            return $this->sendNoPhoneNumberFound($id);
         }
 
         $content = json_decode($request->getContent());
 
-        $phoneNumber->setCode($content->code);
-        $phoneNumber->setNumber($content->number);
+        $phoneNumber->setNumber($content->phoneNumber);
         $entityManager->flush();
 
-        $data = [
-            'id' => $phoneNumber->getId(),
-            'code' => $phoneNumber->getCode(),
-            'number' => $phoneNumber->getNumber(),
-        ];
-
-        return $this->json($data);
+        return $this->json($this->getPhoneNumberView($phoneNumber));
     }
 
 
     /**
-     * @Route("/phone-number/{id}", name="phone_number_delete", methods={"DELETE"})
+     * @Route("/phone-number/{id}", name="project_delete", methods={"DELETE"})
      */
     public function delete(int $id): Response
     {
@@ -116,12 +96,27 @@ class PhoneNumberController extends AbstractController
         $phoneNumber = $entityManager->getRepository(PhoneNumber::class)->find($id);
 
         if (!$phoneNumber) {
-            return $this->json('No phone number found for id' . $id, 404);
+            return $this->sendNoPhoneNumberFound($id);
         }
 
         $entityManager->remove($phoneNumber);
         $entityManager->flush();
 
-        return $this->json('Deleted a project successfully with id ' . $id);
+        return $this->json('Deleted a phone number successfully with id ' . $id);
+    }
+
+
+    private function getPhoneNumberView(PhoneNumber $phoneNumber): array
+    {
+        return [
+            'id' => $phoneNumber->getId(),
+            'phoneNumber' => $phoneNumber->getNumber(),
+        ];
+    }
+
+
+    private function sendNoPhoneNumberFound(int $id): JsonResponse
+    {
+        return $this->json('No phone number found for id' . $id, 404);
     }
 }
