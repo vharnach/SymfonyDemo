@@ -3,8 +3,13 @@
 namespace App\Controller;
 
 use App\Entity\PhoneNumber;
+use App\Enum\PhoneNumberFields;
+use App\Enum\ResponseCodesEnum;
+use App\Exception\PhoneNumberNotFoundException;
+use App\Exception\PhoneNumberValidationException;
+use App\Reader\PhoneNumberReader;
+use App\Writer\PhoneNumberWriter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -14,14 +19,24 @@ use Symfony\Component\Routing\Annotation\Route;
  */
 class ProjectController extends AbstractController
 {
+    private PhoneNumberReader $phoneNumberReader;
+
+    private PhoneNumberWriter $phoneNumberWriter;
+
+
+    public function __construct(PhoneNumberReader $phoneNumberReader, PhoneNumberWriter $phoneNumberWriter)
+    {
+        $this->phoneNumberReader = $phoneNumberReader;
+        $this->phoneNumberWriter = $phoneNumberWriter;
+    }
+
+
     /**
      * @Route("/phone-number", name="project_index", methods={"GET"})
      */
     public function index(): Response
     {
-        $phoneNumbers = $this->getDoctrine()
-            ->getRepository(PhoneNumber::class)
-            ->findAll();
+        $phoneNumbers = $this->phoneNumberReader->getAll();
 
         $data = [];
         foreach ($phoneNumbers as $phoneNumber) {
@@ -37,15 +52,16 @@ class ProjectController extends AbstractController
      */
     public function new(Request $request): Response
     {
-        $entityManager = $this->getDoctrine()->getManager();
+        try {
+            $phoneNumber = $this->phoneNumberWriter->create(json_decode($request->getContent(), true));
+        } catch (PhoneNumberValidationException $exception) {
+            return $this->json($exception->getMessage(), ResponseCodesEnum::BAD_REQUEST);
+        }
 
-        $phoneNumber = new PhoneNumber();
-        $phoneNumber->setNumber($request->request->get('phoneNumber'));
-
-        $entityManager->persist($phoneNumber);
-        $entityManager->flush();
-
-        return $this->json('Created new phone number successfully with id ' . $phoneNumber->getId());
+        return $this->json(
+            'Created new phone number successfully with id ' . $phoneNumber->getId(),
+            ResponseCodesEnum::CREATED
+        );
     }
 
 
@@ -54,12 +70,10 @@ class ProjectController extends AbstractController
      */
     public function show(int $id): Response
     {
-        $phoneNumber = $this->getDoctrine()
-            ->getRepository(PhoneNumber::class)
-            ->find($id);
-
-        if (!$phoneNumber) {
-            return $this->sendNoPhoneNumberFound($id);
+        try {
+            $phoneNumber = $this->phoneNumberReader->getById($id);
+        } catch (PhoneNumberNotFoundException $exception) {
+            return $this->json($exception->getMessage(), ResponseCodesEnum::NOT_FOUND);
         }
 
         return $this->json($this->getPhoneNumberView($phoneNumber));
@@ -71,17 +85,13 @@ class ProjectController extends AbstractController
      */
     public function edit(Request $request, int $id): Response
     {
-        $entityManager = $this->getDoctrine()->getManager();
-        $phoneNumber = $entityManager->getRepository(PhoneNumber::class)->find($id);
-
-        if (!$phoneNumber) {
-            return $this->sendNoPhoneNumberFound($id);
+        try {
+            $phoneNumber = $this->phoneNumberWriter->edit($id, json_decode($request->getContent(), true));
+        } catch (PhoneNumberValidationException $exception) {
+            return $this->json($exception->getMessage(), ResponseCodesEnum::BAD_REQUEST);
+        } catch (PhoneNumberNotFoundException $exception) {
+            return $this->json($exception->getMessage(), ResponseCodesEnum::NOT_FOUND);
         }
-
-        $content = json_decode($request->getContent());
-
-        $phoneNumber->setNumber($content->phoneNumber);
-        $entityManager->flush();
 
         return $this->json($this->getPhoneNumberView($phoneNumber));
     }
@@ -92,31 +102,24 @@ class ProjectController extends AbstractController
      */
     public function delete(int $id): Response
     {
-        $entityManager = $this->getDoctrine()->getManager();
-        $phoneNumber = $entityManager->getRepository(PhoneNumber::class)->find($id);
-
-        if (!$phoneNumber) {
-            return $this->sendNoPhoneNumberFound($id);
+        try {
+            $this->phoneNumberWriter->delete($id);
+        } catch (PhoneNumberNotFoundException $exception) {
+            return $this->json($exception->getMessage(), ResponseCodesEnum::NOT_FOUND);
         }
-
-        $entityManager->remove($phoneNumber);
-        $entityManager->flush();
 
         return $this->json('Deleted a phone number successfully with id ' . $id);
     }
 
 
+    /**
+     * TODO Could be extracted to separate class
+     */
     private function getPhoneNumberView(PhoneNumber $phoneNumber): array
     {
         return [
-            'id' => $phoneNumber->getId(),
-            'phoneNumber' => $phoneNumber->getNumber(),
+            PhoneNumberFields::ID => $phoneNumber->getId(),
+            PhoneNumberFields::PHONE_NUMBER => $phoneNumber->getNumber(),
         ];
-    }
-
-
-    private function sendNoPhoneNumberFound(int $id): JsonResponse
-    {
-        return $this->json('No phone number found for id' . $id, 404);
     }
 }
