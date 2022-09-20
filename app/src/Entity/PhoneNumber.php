@@ -18,21 +18,21 @@ class PhoneNumber
     private int $id;
 
     /**
-     * @ORM\Column(type="bigint")
+     * @ORM\Column(type="string", length=12)
      */
-    private int $number;
+    private string $number;
 
-    public function getId(): ?int
+    public function getId(): int
     {
         return $this->id;
     }
 
-    public function getNumber(): int
+    public function getNumber(): string
     {
         return $this->number;
     }
 
-    public function setNumber(int $number): void
+    public function setNumber(string $number): void
     {
         $this->number = $number;
     }

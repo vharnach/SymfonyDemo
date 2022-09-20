@@ -10,9 +10,9 @@ function PhoneNumberCreate() {
 
     const handleSave = () => {
         setIsSaving(true);
-        let formData = new FormData()
-        formData.append("phoneNumber", phoneNumber)
-        axios.post('/api/phone-number', formData)
+        axios.post('/api/phone-number', {
+            phoneNumber: phoneNumber
+        })
         .then(function (response) {
             Swal.fire({
                 icon: 'success',
@@ -26,7 +26,7 @@ function PhoneNumberCreate() {
         .catch(function (error) {
             Swal.fire({
                 icon: 'error',
-                title: 'An Error Occured!',
+                title: 'An Error Occured!' + error,
                 showConfirmButton: false,
                 timer: 1500
             })

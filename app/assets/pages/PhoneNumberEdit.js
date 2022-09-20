@@ -19,7 +19,7 @@ function PhoneNumberEdit() {
         .catch(function (error) {
             Swal.fire({
                 icon: 'error',
-                title: 'An Error Occured!',
+                title: 'An Error Occured!' + error,
                 showConfirmButton: false,
                 timer: 1500
             })
